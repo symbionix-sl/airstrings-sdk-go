@@ -329,8 +329,9 @@ func TestBootstrap(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			api := newHost(t, tc.handler)
-			if got := Bootstrap(context.Background(), &http.Client{}, api.URL+"/", discard); got != tc.want(api.URL) {
-				t.Fatalf("got %+v", got)
+			got, err := Bootstrap(context.Background(), &http.Client{}, api.URL+"/", discard)
+			if got != tc.want(api.URL) || (err == nil) != (got != defaults("")) {
+				t.Fatalf("got %+v, %v", got, err)
 			}
 			if api.paths[0] != "/v1/sdk/bootstrap" {
 				t.Fatalf("path = %q", api.paths[0])
@@ -338,16 +339,16 @@ func TestBootstrap(t *testing.T) {
 		})
 	}
 	t.Run("unreachable", func(t *testing.T) {
-		if got := Bootstrap(context.Background(), &http.Client{}, deadHost(t), discard); got != defaults("") {
-			t.Fatalf("got %+v", got)
+		if got, err := Bootstrap(context.Background(), &http.Client{}, deadHost(t), discard); got != defaults("") || err == nil {
+			t.Fatalf("got %+v, %v", got, err)
 		}
 	})
 	t.Run("timeout", func(t *testing.T) {
 		api := newHost(t, hang)
 		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 		defer cancel()
-		if got := Bootstrap(ctx, &http.Client{}, api.URL, discard); got != defaults("") {
-			t.Fatalf("got %+v", got)
+		if got, err := Bootstrap(ctx, &http.Client{}, api.URL, discard); got != defaults("") || err == nil {
+			t.Fatalf("got %+v, %v", got, err)
 		}
 	})
 }

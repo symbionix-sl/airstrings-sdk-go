@@ -27,17 +27,17 @@ var ErrHTTPStatus = errors.New("airstrings: unexpected HTTP status")
 
 type Hosts struct{ CDN, Fallback string }
 
-// Bootstrap asks the API for the delivery hosts. Any failure yields the default
-// CDN and no fallback.
-func Bootstrap(ctx context.Context, hc *http.Client, apiBase string, log *slog.Logger) Hosts {
+// Bootstrap asks the API for the delivery hosts. On any failure it returns the
+// default CDN with no fallback, together with the error.
+func Bootstrap(ctx context.Context, hc *http.Client, apiBase string, log *slog.Logger) (Hosts, error) {
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
 	hosts, err := bootstrap(ctx, hc, strings.TrimRight(apiBase, "/")+"/v1/sdk/bootstrap")
 	if err != nil {
 		log.Warn("airstrings: bootstrap failed, using default CDN", "error", err)
-		return Hosts{CDN: DefaultCDN}
+		return Hosts{CDN: DefaultCDN}, err
 	}
-	return hosts
+	return hosts, nil
 }
 
 func bootstrap(ctx context.Context, hc *http.Client, endpoint string) (Hosts, error) {
